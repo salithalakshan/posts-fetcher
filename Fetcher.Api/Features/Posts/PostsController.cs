@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Fetcher.Api.Common.Api;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Fetcher.Api.Features.Posts;
 
@@ -18,7 +19,9 @@ public class PostsController(
         _logger.LogInformation("Received request to fetch all posts");
 
         var posts = await _postService.GetAllAsync(cancellationToken);
-        return Ok(posts);
+
+        var response = ApiResponse<IReadOnlyCollection<GetPostResponse>>.Success(posts, HttpContext.TraceIdentifier);
+        return Ok(response);
     }
 
     [HttpGet("{id:int}")]
@@ -28,12 +31,14 @@ public class PostsController(
         var post = await _postService.GetByIdAsync(id, cancellationToken);
         if (post is null)
         {
-            _logger.LogWarning("Post with ID: {Id} not found", id);
-            return NotFound();
+            var errorResponse = ApiResponse<GetPostResponse>.Error(
+                code: "PostNotFound", 
+                message: $"Post with ID {id} was not found.",
+                traceId: HttpContext.TraceIdentifier);
+            return NotFound(errorResponse);
         }
 
-        return Ok(post);
+        var response = ApiResponse<GetPostResponse>.Success(post, HttpContext.TraceIdentifier);
+        return Ok(response);
     }
-
-
 }

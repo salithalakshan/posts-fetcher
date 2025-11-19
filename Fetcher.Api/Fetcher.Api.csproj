@@ -10,7 +10,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Common\Apis\" />
     <Folder Include="Common\Exceptions\" />
     <Folder Include="Domain\" />
     <Folder Include="Infrastructure\Data\" />
