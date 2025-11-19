@@ -1,7 +1,9 @@
-﻿using Fetcher.Api.Infrastructure.Configs;
+﻿using Fetcher.Api.Common.Exceptions;
+using Fetcher.Api.Infrastructure.Configs;
 using Fetcher.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using System.Net;
 using System.Text.Json;
 
 namespace Fetcher.Api.Infrastructure.External;
@@ -25,7 +27,7 @@ public sealed class PostApiClient(
         if(!response.IsSuccessStatusCode)
         {
             _logger.LogError("Failed to fetch posts. Status Code: {StatusCode}", response.StatusCode);
-            throw new HttpRequestException($"Failed to fetch posts. Status Code: {response.StatusCode}");
+            throw new ExternalApiException($"Failed to fetch posts. Status Code: {response.StatusCode}");
         }
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
@@ -41,7 +43,14 @@ public sealed class PostApiClient(
         if(!response.IsSuccessStatusCode)
         {
             _logger.LogError("Failed to fetch post with Id: {Id}. Status Code: {StatusCode}", id, response.StatusCode);
-            return default;
+            
+            Exception ex = response.StatusCode switch
+            {
+                HttpStatusCode.NotFound => new NotFoundException($"Post with Id: {id} not found."),
+                _ => new ExternalApiException($"Failed to fetch post with Id: {id}. Status Code: {response.StatusCode}")
+            };
+
+            throw ex;
         }
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);

@@ -1,4 +1,5 @@
-﻿using Fetcher.Api.Infrastructure.External;
+﻿using Fetcher.Api.Common.Exceptions;
+using Fetcher.Api.Infrastructure.External;
 
 namespace Fetcher.Api.Features.Posts;
 
@@ -28,7 +29,7 @@ public class PostService(
         var externalPost = await _postApiClient.GetByIdAsync(id, cancellationToken);
         if(externalPost is null)
         {
-            return default;
+            throw new NotFoundException($"Post with Id: {id} not found.");
         }
         return GetPostResponse.Map(externalPost);
     }

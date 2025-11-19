@@ -1,3 +1,4 @@
+using Fetcher.Api.Common.Middlewares;
 using Fetcher.Api.Features.Posts;
 using Fetcher.Api.Infrastructure.Configs;
 using Fetcher.Api.Infrastructure.External;
@@ -20,6 +21,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseHttpsRedirection();
 
 app.UseAuthorization();

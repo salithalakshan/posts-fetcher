@@ -28,16 +28,8 @@ public class PostsController(
     public async Task<IActionResult> GetByIdAsync(int id,CancellationToken cancellationToken)
     {
         _logger.LogInformation("Received request to fetch post with ID: {Id}", id);
-        var post = await _postService.GetByIdAsync(id, cancellationToken);
-        if (post is null)
-        {
-            var errorResponse = ApiResponse<GetPostResponse>.Error(
-                code: "PostNotFound", 
-                message: $"Post with ID {id} was not found.",
-                traceId: HttpContext.TraceIdentifier);
-            return NotFound(errorResponse);
-        }
 
+        var post = await _postService.GetByIdAsync(id, cancellationToken);
         var response = ApiResponse<GetPostResponse>.Success(post, HttpContext.TraceIdentifier);
         return Ok(response);
     }
