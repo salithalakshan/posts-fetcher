@@ -5,6 +5,7 @@ namespace Fetcher.Api.Features.Posts;
 public interface IPostService
 {
     Task<IReadOnlyCollection<GetPostResponse>> GetAllAsync(CancellationToken cancellationToken);
+    Task<GetPostResponse> GetByIdAsync(int id, CancellationToken cancellationToken);
 }
 
 public class PostService(
@@ -20,5 +21,15 @@ public class PostService(
         _logger.LogInformation("Fetched {Count} posts from external API", externalPosts.Count);
 
         return externalPosts.Select(GetPostResponse.Map).ToList();
+    }
+
+    public async Task<GetPostResponse> GetByIdAsync(int id, CancellationToken cancellationToken)
+    {
+        var externalPost = await _postApiClient.GetByIdAsync(id, cancellationToken);
+        if(externalPost is null)
+        {
+            return default;
+        }
+        return GetPostResponse.Map(externalPost);
     }
 }

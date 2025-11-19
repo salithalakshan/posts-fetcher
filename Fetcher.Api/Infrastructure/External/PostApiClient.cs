@@ -33,6 +33,23 @@ public sealed class PostApiClient(
         return externalPosts;
     }
 
+    public async Task<ExternalPost> GetByIdAsync(int id, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Fetching post with Id : {id}", id);
+        var client = Configure(_httpClient);
+        using var response = await client.GetAsync($"{_config.PostsEndpoint}/{id}", cancellationToken);
+        if(!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Failed to fetch post with Id: {Id}. Status Code: {StatusCode}", id, response.StatusCode);
+            return default;
+        }
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var externalPost = await JsonSerializer.DeserializeAsync<ExternalPost>(stream, _serializerOptions, cancellationToken);
+        return externalPost;
+
+    }
+
     private  HttpClient Configure(HttpClient httpClient)
     {
         httpClient.BaseAddress = new Uri(_config.BaseUrl.TrimEnd('/'));
