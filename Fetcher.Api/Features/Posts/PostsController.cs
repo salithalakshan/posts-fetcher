@@ -25,7 +25,7 @@ public class PostsController(
     }
 
     [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetByIdAsync(int id,CancellationToken cancellationToken)
+    public async Task<IActionResult> GetByIdAsync([FromRoute] int id, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Received request to fetch post with ID: {Id}", id);
 
@@ -33,4 +33,17 @@ public class PostsController(
         var response = ApiResponse<GetPostResponse>.Success(post, HttpContext.TraceIdentifier);
         return Ok(response);
     }
+
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchAsync([FromQuery] int? userId, [FromQuery] string query, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Received request to fetch posts with userId={UserId}, query={Query}", userId, query);
+
+        var request = new SearchPostRequest(userId, query);
+        var posts = await _postService.SearchAsync(request ,cancellationToken);
+
+        var response = ApiResponse<IReadOnlyCollection<GetPostResponse>>.Success(posts, HttpContext.TraceIdentifier);
+        return Ok(response);
+    }
+
 }

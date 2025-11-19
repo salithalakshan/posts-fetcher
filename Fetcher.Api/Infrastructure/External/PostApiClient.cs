@@ -58,6 +58,23 @@ public sealed class PostApiClient(
 
     }
 
+    public async Task<IReadOnlyCollection<ExternalPost>> SearchAsync(int? userId, CancellationToken cancellationToken)
+    {
+        var client = Configure(_httpClient);
+        using var response = userId.HasValue && userId >= 0 ? await client.GetAsync($"{_config.PostsEndpoint}?userId={userId}", cancellationToken)
+                                                            : await client.GetAsync(_config.PostsEndpoint, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Failed to fetch posts. Status Code: {StatusCode}", response.StatusCode);
+            throw new ExternalApiException($"Failed to fetch posts. Status Code: {response.StatusCode}");
+        }
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var externalPosts = await JsonSerializer.DeserializeAsync<IReadOnlyCollection<ExternalPost>>(stream, _serializerOptions, cancellationToken);
+        return externalPosts;
+    }
+
     private  HttpClient Configure(HttpClient httpClient)
     {
         httpClient.BaseAddress = new Uri(_config.BaseUrl.TrimEnd('/'));

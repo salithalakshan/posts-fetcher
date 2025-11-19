@@ -6,4 +6,5 @@ public interface IPostApiClient
 {
     Task<IReadOnlyCollection<ExternalPost>> GetAllAsync(CancellationToken cancellationToken);
     Task<ExternalPost> GetByIdAsync(int id, CancellationToken cancellationToken);
+    Task<IReadOnlyCollection<ExternalPost>> SearchAsync(int? userId, CancellationToken cancellationToken);
 }

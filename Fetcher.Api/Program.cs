@@ -18,7 +18,7 @@ builder.Services.AddHttpClient<IPostApiClient, PostApiClient>();
 
 builder.Services.Configure<DatabaseConfig>(builder.Configuration.GetSection("ConnectionStrings"));
 builder.Services.AddScoped<ICacheStoreService, CacheStoreService>();
-builder.Services.AddScoped<ISqlConnectionFactory, SqlConnectionFactory>();
+builder.Services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
 
 var app = builder.Build();
 

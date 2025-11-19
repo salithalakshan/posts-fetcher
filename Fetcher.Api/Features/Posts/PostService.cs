@@ -69,6 +69,41 @@ public class PostService(
         return GetPostResponse.Map(externalPost);
     }
 
+    public async Task<IReadOnlyCollection<GetPostResponse>> SearchAsync(SearchPostRequest searchPost, CancellationToken cancellationToken)
+    {
+        var keyUserId = searchPost.UserId.HasValue && searchPost.UserId >= 0 ? searchPost.UserId.ToString() : "null";
+        var keyQuery = searchPost.Query;
+        var cacheKey = $"posts:search:userId={keyUserId}:query={keyQuery}";
+
+        var cachedData = await _cachedService.GetAsync(cacheKey, CancellationToken.None);
+        if(cachedData is not null)
+        {
+            var cachedPosts = JsonSerializer.Deserialize<IReadOnlyCollection<ExternalPost>>(cachedData);
+            _logger.LogInformation("Fetched {Count} posts from cache for search {CacheKey}", cachedPosts.Count, cacheKey);
+            return cachedPosts.Select(GetPostResponse.Map).ToList();
+        }
+
+        var externalPosts = await _postApiClient.SearchAsync(searchPost.UserId, cancellationToken);
+        _logger.LogInformation("Fetched {Count} posts from external API", externalPosts.Count);
+        
+        var filteredPosts = externalPosts.Where(post =>
+                                string.IsNullOrWhiteSpace(searchPost.Query) ||
+                                post.Title.Contains(searchPost.Query, StringComparison.OrdinalIgnoreCase)).ToList();
+
+        if (filteredPosts.Any())
+        {
+            _ = CacheAsync(cacheKey, filteredPosts, CancellationToken.None)
+                .ContinueWith(
+                    t => logger.LogError(t.Exception, "Error while caching posts for key {Key}", cacheKey),
+                    TaskContinuationOptions.OnlyOnFaulted
+                );
+        }
+
+        return filteredPosts.Select(GetPostResponse.Map).ToList();
+
+    }
+
+
     private async Task CacheAsync<T>(string key, T value, CancellationToken cancellationToken)
     {
         var jsonData = JsonSerializer.Serialize(value);
