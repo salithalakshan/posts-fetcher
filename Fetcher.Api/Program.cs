@@ -5,6 +5,7 @@ using Fetcher.Api.Infrastructure.External;
 using Fetcher.CacheService.Cache;
 using Fetcher.CacheService.Configs;
 using Fetcher.CacheService.Data;
+using Fetcher.CacheService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,8 +18,9 @@ builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddHttpClient<IPostApiClient, PostApiClient>();
 
 builder.Services.Configure<DatabaseConfig>(builder.Configuration.GetSection("ConnectionStrings"));
-builder.Services.AddScoped<ICacheStoreService, CacheStoreService>();
+builder.Services.AddSingleton<ICacheStoreService, CacheStoreService>();
 builder.Services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
+builder.Services.AddHostedService<CacheCleanupService>();
 
 var app = builder.Build();
 

@@ -1,21 +1,25 @@
 ﻿
+using Fetcher.CacheService.Configs;
 using Fetcher.CacheService.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Fetcher.CacheService.Cache;
 
 public sealed class CacheStoreService(
     ISqlConnectionFactory sqlConnectionFactory,
-    ILogger<CacheStoreService> logger
+    ILogger<CacheStoreService> logger,
+    IOptions<CacheSettingsConfig> cacheSettingsConfig
     ) : ICacheStoreService
 {
     private readonly ISqlConnectionFactory _sqlConnectionFactory = sqlConnectionFactory;
     private readonly ILogger<CacheStoreService> _logger = logger;
+    private readonly CacheSettingsConfig _cacheSettingsConfig = cacheSettingsConfig.Value;
     public async Task<string> GetAsync(string key, CancellationToken cancellationToken)
     {
         const string sql = """
-            SELECT JsonValue, ExpiresAtUtc
+            SELECT JsonValue
             FROM dbo.CacheEntry
             WHERE CacheKey = @Key AND ExpiresAtUtc > GETUTCDATE()
             """;
@@ -36,14 +40,14 @@ public sealed class CacheStoreService(
         var value = reader.GetString(0);
         return value;
     }
-    public async Task AddAsync(string key, string value, TimeSpan expiration, CancellationToken cancellationToken)
+    public async Task AddAsync(string key, string value, CancellationToken cancellationToken)
     {
         const string sql = """
                        INSERT INTO dbo.CacheEntry (CacheKey, JsonValue, CreatedAtUtc, ExpiresAtUtc)
                        VALUES (@Key, @JsonValue, @CreatedAtUtc, @ExpiresAtUtc);
                        """;
         var createdAtUtc = DateTime.UtcNow;
-        var expiresAtUtc = createdAtUtc.Add(expiration);
+        var expiresAtUtc = createdAtUtc.Add(TimeSpan.FromMinutes(_cacheSettingsConfig.DefaultTtlMinutes));
 
         await using var connection = _sqlConnectionFactory.CreateConnection();
         await connection.OpenAsync(cancellationToken);
@@ -59,4 +63,24 @@ public sealed class CacheStoreService(
         logger.LogInformation("Cache entry set for key {Key}", key);
 
     }
+
+    public async Task CleanupExpiredCacheEntryAsync(CancellationToken cancellationToken)
+    {
+        const string sql = """
+                           DELETE FROM dbo.CacheEntry
+                           WHERE ExpiresAtUtc <= SYSUTCDATETIME();
+                           """;
+
+        await using var connection = _sqlConnectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        await using var command = new SqlCommand(sql, connection);
+        var affected = await command.ExecuteNonQueryAsync(cancellationToken);
+
+        if (affected > 0)
+        {
+            _logger.LogInformation("Deleted {Count} expired cache entries", affected);
+        }
+    }
+
 }

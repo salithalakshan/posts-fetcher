@@ -107,6 +107,6 @@ public class PostService(
     private async Task CacheAsync<T>(string key, T value, CancellationToken cancellationToken)
     {
         var jsonData = JsonSerializer.Serialize(value);
-        await _cachedService.AddAsync(key, jsonData, TimeSpan.FromMinutes(5), cancellationToken);
+        await _cachedService.AddAsync(key, jsonData, cancellationToken);
     }
 }
