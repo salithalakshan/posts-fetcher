@@ -1,4 +1,5 @@
 ﻿using Fetcher.Api.Common.Api;
+using Fetcher.Api.Common.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fetcher.Api.Features.Posts;
@@ -14,13 +15,13 @@ public class PostsController(
     private readonly ILogger<PostsController> _logger = logger;
 
     [HttpGet]
-    public async Task<IActionResult> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAllAsync([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Received request to fetch all posts");
 
-        var posts = await _postService.GetAllAsync(cancellationToken);
+        var posts = await _postService.GetAllAsync(page, pageSize, cancellationToken);
 
-        var response = ApiResponse<IReadOnlyCollection<GetPostResponse>>.Success(posts, HttpContext.TraceIdentifier);
+        var response = ApiResponse<PagedResult<GetPostResponse>>.Success(posts, HttpContext.TraceIdentifier);
         return Ok(response);
     }
 
@@ -45,5 +46,7 @@ public class PostsController(
         var response = ApiResponse<IReadOnlyCollection<GetPostResponse>>.Success(posts, HttpContext.TraceIdentifier);
         return Ok(response);
     }
+
+    //TODO: Add endpoints for creation -> can demonstrate caching invalidation
 
 }

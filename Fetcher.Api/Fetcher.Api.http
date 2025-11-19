@@ -1,6 +1,36 @@
 @Fetcher.Api_HostAddress = http://localhost:5015
+@PostsBase = {{Fetcher.Api_HostAddress}}/api/v1/posts
 
-GET {{Fetcher.Api_HostAddress}}/weatherforecast/
+### Get all posts
+GET {{PostsBase}}
 Accept: application/json
 
 ###
+
+### Get all posts (page + size)
+GET {{PostsBase}}?page=5&pageSize=5
+Accept: application/json
+
+###
+
+### Get post by id
+GET {{PostsBase}}/1
+Accept: application/json
+
+###
+
+### Search posts (userId + query)
+GET {{PostsBase}}/search?userId=1&query=reprehenderit
+Accept: application/json
+
+###
+
+### Search posts (only query)
+GET {{PostsBase}}/search?query=reprehenderit
+Accept: application/json
+
+###
+
+### Search posts (only userId)
+GET {{PostsBase}}/search?userId=1
+Accept: application/json
