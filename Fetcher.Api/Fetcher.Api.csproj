@@ -11,7 +11,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
+    <Folder Include="Common\Apis\" />
+    <Folder Include="Common\Exceptions\" />
+    <Folder Include="Domain\" />
+    <Folder Include="Infrastructure\Data\" />
   </ItemGroup>
 
 </Project>
