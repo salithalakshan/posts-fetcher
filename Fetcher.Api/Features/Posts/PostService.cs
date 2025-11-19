@@ -45,11 +45,27 @@ public class PostService(
 
     public async Task<GetPostResponse> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
+        var cacheKey = $"posts:{id}";
+        var cachedData = await _cachedService.GetAsync(cacheKey, cancellationToken);
+        if (cachedData is not null)
+        {
+            var cachedPost = JsonSerializer.Deserialize<ExternalPost>(cachedData);
+            _logger.LogInformation("Fetched post {Id} from cache", id);
+            return GetPostResponse.Map(cachedPost);
+        }
+
         var externalPost = await _postApiClient.GetByIdAsync(id, cancellationToken);
         if(externalPost is null)
         {
             throw new NotFoundException($"Post with Id: {id} not found.");
         }
+
+        _ = CacheAsync(cacheKey, externalPost, CancellationToken.None)
+                .ContinueWith(
+                    t => logger.LogError(t.Exception, "Error while caching posts for key {Key}", cacheKey),
+                    TaskContinuationOptions.OnlyOnFaulted
+                );
+
         return GetPostResponse.Map(externalPost);
     }
 
