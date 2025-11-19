@@ -14,4 +14,8 @@
     <Folder Include="Infrastructure\Data\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Fetcher.CacheService\Fetcher.CacheService.csproj" />
+  </ItemGroup>
+
 </Project>

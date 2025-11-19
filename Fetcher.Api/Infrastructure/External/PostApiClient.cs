@@ -1,7 +1,6 @@
 ﻿using Fetcher.Api.Common.Exceptions;
 using Fetcher.Api.Infrastructure.Configs;
 using Fetcher.Api.Models;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Text.Json;
