@@ -1,7 +1,10 @@
 ﻿using Fetcher.Api.Common.Exceptions;
+using Fetcher.Api.Common.Models;
+using Fetcher.Api.Features.Posts;
 using Fetcher.Api.Infrastructure.Configs;
 using Fetcher.Api.Models;
 using Microsoft.Extensions.Options;
+using System.Collections.Generic;
 using System.Net;
 using System.Text.Json;
 
@@ -18,7 +21,7 @@ public sealed class PostApiClient(
     private readonly ExternalApiConfig _config = externalApiConfigs.Value;
     private readonly JsonSerializerOptions _serializerOptions = new() { PropertyNameCaseInsensitive = true };
 
-    public async Task<IReadOnlyCollection<ExternalPost>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<PagedResult<ExternalPost>> GetAllAsync(int page, int pageSize, CancellationToken cancellationToken)
     {
         var client = Configure(_httpClient);
         using var response = await client.GetAsync(_config.PostsEndpoint, cancellationToken);
@@ -31,7 +34,7 @@ public sealed class PostApiClient(
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         var externalPosts = await JsonSerializer.DeserializeAsync<IReadOnlyCollection<ExternalPost>>(stream, _serializerOptions,  cancellationToken);
-        return externalPosts;
+        return MockPaginatedResult(page, pageSize, externalPosts);
     }
 
     public async Task<ExternalPost> GetByIdAsync(int id, CancellationToken cancellationToken)
@@ -79,5 +82,26 @@ public sealed class PostApiClient(
     {
         httpClient.BaseAddress = new Uri(_config.BaseUrl.TrimEnd('/'));
         return httpClient;
+    }
+
+    private PagedResult<ExternalPost> MockPaginatedResult(int page, int pageSize, IReadOnlyCollection<ExternalPost> externalPosts)
+    {
+        var pagedPosts = externalPosts
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(c => c)
+            .ToList();
+
+
+        var totalCount = externalPosts.Count;
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        return new PagedResult<ExternalPost>(
+                    Items: pagedPosts,
+                    Page: page,
+                    PageSize: pageSize,
+                    TotalCount: totalCount,
+                    TotalPages: totalPages
+                );
     }
 }

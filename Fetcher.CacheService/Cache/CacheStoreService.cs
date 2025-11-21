@@ -64,7 +64,7 @@ public sealed class CacheStoreService(
 
     }
 
-    public async Task CleanupExpiredCacheEntryAsync(CancellationToken cancellationToken)
+    public async Task CleanupExpiredAsync(CancellationToken cancellationToken)
     {
         const string sql = """
                            DELETE FROM dbo.CacheEntry

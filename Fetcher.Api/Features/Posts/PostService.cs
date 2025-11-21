@@ -39,34 +39,24 @@ public class PostService(
                 );
         }
 
-        var externalPosts = await _postApiClient.GetAllAsync(cancellationToken);
-        _logger.LogInformation("Fetched {Count} posts from external API", externalPosts.Count);
+        var externalPosts = await _postApiClient.GetAllAsync(page, pageSize, cancellationToken);
+        _logger.LogInformation("Fetched {Count} posts from external API", externalPosts.Items.Count);
 
-        var totalCount = externalPosts.Count;
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
-        var pagedPosts = externalPosts
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(GetPostResponse.Map)
-            .ToList();
-
-        if (externalPosts.Any())
+        if (externalPosts.Items.Any())
         {
-            _ = CacheAsync(cacheKey, pagedPosts, CancellationToken.None)
+            _ = CacheAsync(cacheKey, externalPosts.Items, CancellationToken.None)
                 .ContinueWith(
                     t => logger.LogError(t.Exception, "Error while caching posts for key {Key}", cacheKey),
                     TaskContinuationOptions.OnlyOnFaulted
                 );
         }
-
         return new PagedResult<GetPostResponse>(
-                        Items: pagedPosts,
-                        Page: page,
-                        PageSize: pageSize,
-                        TotalCount: totalCount,
-                        TotalPages: totalPages
-                    );
+                Items: externalPosts.Items.Select(GetPostResponse.Map).ToList(),
+                Page: page,
+                PageSize: pageSize,
+                TotalCount: externalPosts.TotalCount,
+                TotalPages: externalPosts.TotalPages
+            );
 
     }
 
@@ -81,15 +71,10 @@ public class PostService(
             return GetPostResponse.Map(cachedPost);
         }
 
-        var externalPost = await _postApiClient.GetByIdAsync(id, cancellationToken);
-        if(externalPost is null)
-        {
-            throw new NotFoundException($"Post with Id: {id} not found.");
-        }
-
+        var externalPost = await _postApiClient.GetByIdAsync(id, cancellationToken) ?? throw new NotFoundException($"Post with Id: {id} not found.");
         _ = CacheAsync(cacheKey, externalPost, CancellationToken.None)
                 .ContinueWith(
-                    t => logger.LogError(t.Exception, "Error while caching posts for key {Key}", cacheKey),
+                    t => logger.LogWarning(t.Exception, "Error while caching posts for key {Key}", cacheKey),
                     TaskContinuationOptions.OnlyOnFaulted
                 );
 
@@ -121,7 +106,7 @@ public class PostService(
         {
             _ = CacheAsync(cacheKey, filteredPosts, CancellationToken.None)
                 .ContinueWith(
-                    t => logger.LogError(t.Exception, "Error while caching posts for key {Key}", cacheKey),
+                    t => logger.LogWarning(t.Exception, "Error while caching posts for key {Key}", cacheKey),
                     TaskContinuationOptions.OnlyOnFaulted
                 );
         }

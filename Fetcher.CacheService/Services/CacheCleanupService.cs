@@ -22,7 +22,7 @@ namespace Fetcher.CacheService.Services
             {
                 try
                 {
-                    await _cacheStoreService.CleanupExpiredCacheEntryAsync(cancellationToken);
+                    await _cacheStoreService.CleanupExpiredAsync(cancellationToken);
                 }
                 catch (Exception ex)
                 {
